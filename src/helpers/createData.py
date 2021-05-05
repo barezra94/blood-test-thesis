@@ -1,16 +1,16 @@
 import pandas as pd
-import features_lists as values
+from ..helpers import values
 
 
 def __filter_uk_data():
-    df_uk = pd.read_csv("../../docs/blood_test_uk.csv")
-    df_uk_added_data = pd.read_csv("../../docs/ICD10_UK.csv")
+    df_uk = pd.read_csv("../../docs/ukbb_new_tests.csv")
+    df_uk_added_data = pd.read_csv("../../docs/ICD10_ukbb_new.csv")
 
     print("Before", df_uk.shape)
 
     # Create DataSet to return
     wanted_columns = list(values.features.values())
-    wanted_columns.extend(["FID"])
+    wanted_columns.extend(["eid"])
     df_uk = df_uk.loc[:, wanted_columns]
 
     # Drop rows that have NaN values in them
@@ -19,7 +19,7 @@ def __filter_uk_data():
     print(df_uk.shape)
 
     # Create a DataSet for UK data that has values from both files
-    df_uk = df_uk.merge(df_uk_added_data, on="FID")
+    df_uk = df_uk.merge(df_uk_added_data, on="eid")
 
     print(df_uk.columns)
 
@@ -31,7 +31,7 @@ def __filter_uk_data():
 
 def __filter_il_data():
     df_il = pd.read_csv("../../docs/blood_test_il.csv")
-    df_uk_added_data = pd.read_csv("../../docs/ICD10_UK.csv")
+    df_uk_added_data = pd.read_csv("../../docs/ICD10_ukbb_new.csv")
 
     # Filter dataSet values
     wanted_columns = list(values.features.keys())
@@ -54,7 +54,7 @@ def __merge_df(df_uk, df_il):
 
     # Change column names to match df_uk
     all_columns = {
-        "hospital_patient_id": "FID",
+        "hospital_patient_id": "eid",
     }
     all_columns.update(values.features)
     df_il = df_il.rename(columns=all_columns)
