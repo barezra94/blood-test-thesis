@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 
 df_uk_53 = pd.read_csv(
@@ -47,4 +48,8 @@ df.to_csv(
     "/Users/shaygafniel/Desktop/Thesis/NewImplementation/blood-test-thesis/docs/admissions.csv"
 )
 
-print(df)
+df["diff"] = np.abs(df["diff"])
+
+days = df.loc[df["diff"] <= timedelta(days=30)]
+
+print(days)

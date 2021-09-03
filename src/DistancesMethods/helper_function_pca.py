@@ -3,8 +3,8 @@ from sklearn.decomposition import PCA
 from ..helpers import values
 
 
-def mean_diff(data, pca=True):
-    data = data.drop(columns=["K760", "D50*"])
+def mean_diff(data, pca=True, drop_columns=["K760", "D50*"]):
+    data = data.drop(columns=drop_columns)
 
     if pca:
         pca_data = PCA(n_components=len(values.features))
