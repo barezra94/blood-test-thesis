@@ -1,7 +1,11 @@
+import sys
+
 import helpers.createData as cd
+import helpers.dataFunctions as hdf
 import ModelsMethods.survivability as surv
 import ModelsMethods.rf_binary as rfb
 import helpers.functions as fn
+import basics.converter as converter
 
 import pickle
 
@@ -11,6 +15,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     roc_auc_score,
     roc_curve,
@@ -125,18 +130,18 @@ def run_binary_rf(type):
 
     X_train, X_test, y_train, y_test = rfb.split_train_test(data_x, data_y, type=type)
 
-    X_train = np.loadtxt(
-        "blood-test-thesis/docs/results/X_train_{}.csv".format(type), delimiter=",",
-    )
-    y_train = np.loadtxt(
-        "blood-test-thesis/docs/results/y_train_{}.csv".format(type), delimiter=",",
-    )
-    X_test = np.loadtxt(
-        "blood-test-thesis/docs/results/X_test_{}.csv".format(type), delimiter=",",
-    )
-    y_test = np.loadtxt(
-        "blood-test-thesis/docs/results/y_test_{}.csv".format(type), delimiter=",",
-    )
+    # X_train = np.loadtxt(
+    #     "blood-test-thesis/docs/results/X_train_{}.csv".format(type), delimiter=",",
+    # )
+    # y_train = np.loadtxt(
+    #     "blood-test-thesis/docs/results/y_train_{}.csv".format(type), delimiter=",",
+    # )
+    # X_test = np.loadtxt(
+    #     "blood-test-thesis/docs/results/X_test_{}.csv".format(type), delimiter=",",
+    # )
+    # y_test = np.loadtxt(
+    #     "blood-test-thesis/docs/results/y_test_{}.csv".format(type), delimiter=",",
+    # )
 
     model = rfb.CreateRandomForestClassifierModel(X_train, X_test, y_train, y_test)
 
@@ -168,9 +173,65 @@ def rf_plot(filename):
     plt.show()
 
 
+def run_rf(X_train, y_train, test_data, days_to_admission=30):
+    # Split test data to data and outcome
+    test_data = hdf.calc_admission_and_time_to_admission(test_data, days_to_admission)
+    X_test = test_data.drop(columns=["patient_id", "outcome", "outcome_date"])
+    y_test = test_data["is_admission"]
+
+    model = rfb.CreateRandomForestClassifierModel(X_train, X_test, y_train, y_test)
+
+    # Save model to pickle file
+    pickle.dump(model, open("{}.sav".format(type), "wb"))
+
+    y_pred = model.predict(X_test)
+
+    value = roc_auc_score(y_test, y_pred)
+    fpr, tpr, _ = roc_curve(y_test, y_pred)
+    # label = "ROC AUC: " + str(value)
+    # sns.lineplot(fpr, tpr, label=label)
+
+    ax = plt.gca()
+    rfc_disp = plot_roc_curve(model, X_test, y_test, ax=ax)
+
+
 if __name__ == "__main__":
-    # run_survivability()
-    run_binary_rf(type="binary_admission_diff-from-mean_all_columns_30")
-    rf_plot("binary_admission_diff-from-mean_all_columns_30")
-    # rfb.LoadFromFile()
-    # admission_propability_tests(days_to_admission=365, file_name="all-365-1")
+    train_df, test_df = [], []
+
+    if len(sys.argv) == 0:
+        print("Expected at least two argument. Please add data file locations.")
+        sys.exit()
+    elif len(sys.argv) == 3:
+        print("Fetching Data...")
+        patients_df = pd.read_csv(sys.argv[0])
+        tests_df = pd.read_csv(sys.argv[1])
+        outcome_df = pd.read_csv(sys.argv[2])
+
+        print("Converting to DataFrame...")
+        df = converter.convert_to(patients_df, tests_df, outcome_df)
+
+        print("Number of Rows after converstion: %s" % df.shape[0])
+        print("Spliting to train and test files..")
+        train_df, test_df = train_test_split(df, test_size=0.3)
+        print("Saving files..")
+        train_df.save_to_file("merged_data_train.csv")
+        test_df.save_to_file("merged_data_test.csv")
+    else:
+        print("Opening train and test files")
+        train_df = pd.read_csv(sys.argv[0])
+        test_df = pd.read_csv(sys.argv[1])
+
+        # Get data ready for RF
+        print("Getting data ready for Random Forest with default admission value of 30")
+        x_30, y_30 = hdf.create_rf_data(train_df)
+
+        print(
+            "Getting data ready for Random Forest with default admission value of 365"
+        )
+        x_365, y_365 = hdf.create_rf_data(train_df, days_to_admission=365)
+
+        # run_survivability()
+        # run_binary_rf(type="binary_admission_diff-from-mean_all_columns_30")
+        # rf_plot("binary_admission_diff-from-mean_all_columns_30")
+        # rfb.LoadFromFile()
+        # admission_propability_tests(days_to_admission=365, file_name="all-365-1")
