@@ -225,13 +225,12 @@ if __name__ == "__main__":
         print("Getting data ready for Random Forest with default admission value of 30")
         x_30, y_30 = hdf.create_rf_data(train_df)
 
+        run_rf(x_30, y_30, test_df)
+
         print(
             "Getting data ready for Random Forest with default admission value of 365"
         )
         x_365, y_365 = hdf.create_rf_data(train_df, days_to_admission=365)
 
-        # run_survivability()
-        # run_binary_rf(type="binary_admission_diff-from-mean_all_columns_30")
-        # rf_plot("binary_admission_diff-from-mean_all_columns_30")
-        # rfb.LoadFromFile()
-        # admission_propability_tests(days_to_admission=365, file_name="all-365-1")
+        run_rf(x_365, y_365, test_df, days_to_admission=365)
+
